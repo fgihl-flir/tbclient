@@ -1,50 +1,68 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report:
+- Version change: none → 1.0.0 (initial constitution)
+- Added principles: Modern C++ Standards, MQTT Library Integration, Test-First Development, Connection Resilience, Proof of Concept Simplicity
+- Added sections: Technical Constraints, Development Workflow
+- Templates requiring updates: ✅ constitution created (initial version)
+- Follow-up TODOs: none
+-->
+
+# ThingsBoard MQTT Client Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Modern C++ Standards
+Every component MUST adhere to C++17 standards and best practices. All code MUST compile without warnings using `-Wall -Wextra -Werror`. Smart pointers (unique_ptr, shared_ptr) MUST be used for memory management. Raw pointers are prohibited except for non-owning references. RAII principles MUST be applied consistently for resource management.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+**Rationale**: C++17 provides essential features like structured bindings, optional, and improved type deduction that enhance code safety and readability while maintaining performance.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### II. MQTT Library Integration (NON-NEGOTIABLE)
+Eclipse Paho MQTT C++ library MUST be the exclusive MQTT implementation. All MQTT operations MUST go through Paho's async client interface. Direct socket programming or alternative MQTT libraries are forbidden. ThingsBoard-specific message formats and device protocols MUST be abstracted into separate classes.
+The Paho library should be built as part of the application and should be linked statically. Place the library in directory 'paho'.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+**Rationale**: Eclipse Paho provides mature, tested MQTT functionality. Standardizing on this library ensures reliability and reduces development time for a proof of concept.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### III. Test-First Development
+Unit tests MUST be written before implementation using Google Test framework. Every public method and class MUST have corresponding tests. Test coverage below 80% blocks merge. Integration tests MUST verify MQTT broker connectivity and message flow to ThingsBoard.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+**Rationale**: Given the network-dependent nature of MQTT communication, comprehensive testing prevents integration issues and ensures reliable broker communication.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### IV. Connection Resilience
+MQTT connection handling MUST implement automatic reconnection with exponential backoff. Network failures MUST be handled gracefully without data loss. Connection state MUST be observable and logged. Message persistence during disconnection is REQUIRED for critical telemetry data.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+**Rationale**: IoT applications require robust network handling. Poor connection management renders the proof of concept unusable in real-world scenarios.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### V. Proof of Concept Simplicity
+Features MUST be minimal and focused on core MQTT functionality. No unnecessary abstractions or frameworks beyond essential requirements. Configuration MUST be simple (JSON file or environment variables). CLI interface MUST provide clear, actionable feedback.
+
+**Rationale**: As a proof of concept, complexity must be minimized to demonstrate feasibility quickly while maintaining code quality.
+
+## Technical Constraints
+
+**Language**: C++17 (no newer standards to ensure broad compatibility)
+**MQTT Library**: Eclipse Paho MQTT C++ (paho-mqtt-cpp)
+**Build System**: CMake 3.16+ with clear dependency management
+**Testing**: Google Test (gtest) for unit and integration testing
+**Broker**: ThingsBoard Community Edition or Cloud
+**Platforms**: Linux (primary), macOS (secondary), Windows (if time permits)
+**Dependencies**: Minimal external dependencies beyond Paho MQTT and Google Test
+**Memory**: No dynamic allocation during message processing (pre-allocated buffers)
+**Threading**: Single-threaded design with async callbacks to avoid concurrency complexity
+
+## Development Workflow
+
+**Branching**: Feature branches with descriptive names (feature/mqtt-connection, fix/reconnection-logic)
+**Code Review**: All changes require review before merge, focusing on C++17 compliance and test coverage
+**Continuous Integration**: Automated builds and tests on Linux and macOS
+**Documentation**: README with clear build and usage instructions, inline code documentation for public APIs
+**Commit Messages**: Conventional commits format (feat:, fix:, test:, docs:)
+**Error Handling**: Exceptions for programming errors, error codes for recoverable failures
+**Logging**: Structured logging with configurable levels (DEBUG, INFO, WARN, ERROR)
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution supersedes all other development practices and guidelines. All pull requests MUST demonstrate compliance with core principles before merge approval. Complexity must be explicitly justified with clear rationale documented in code comments. Constitution amendments require unanimous team approval and migration plan for existing code.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+All code reviews MUST verify: C++17 compliance, test coverage, MQTT error handling, and adherence to simplicity principle.
+
+**Version**: 1.0.0 | **Ratified**: 2025-10-23 | **Last Amended**: 2025-10-23

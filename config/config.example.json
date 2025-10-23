@@ -1,0 +1,34 @@
+{
+  "thingsboard": {
+    "host": "localhost",
+    "port": 1883,
+    "access_token": "YOUR_ACCESS_TOKEN_HERE",
+    "device_id": "thermal_camera_01",
+    "use_ssl": false,
+    "keep_alive_seconds": 60,
+    "qos_level": 1
+  },
+  "telemetry": {
+    "interval_seconds": 15,
+    "batch_transmission": false,
+    "retry_attempts": 3,
+    "retry_delay_ms": 1000,
+    "measurement_spots": [
+      {
+        "id": 1,
+        "name": "Center Spot",
+        "x": 160,
+        "y": 120,
+        "min_temp": 20.0,
+        "max_temp": 80.0,
+        "noise_factor": 0.1,
+        "enabled": true
+      }
+    ]
+  },
+  "logging": {
+    "level": "info",
+    "output": "console",
+    "log_file": "thermal-mqtt.log"
+  }
+}

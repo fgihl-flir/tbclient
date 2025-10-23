@@ -1,0 +1,64 @@
+{
+  "thingsboard": {
+    "host": "eu.thingsboard.cloud",
+    "port": 1883,
+    "access_token": "d4rWzpcI5lPPU7qoxang",
+    "device_id": "thermal_camera_01",
+    "use_ssl": false,
+    "keep_alive_seconds": 60,
+    "qos_level": 1
+  },
+  "telemetry": {
+    "interval_seconds": 5,
+    "batch_transmission": false,
+    "retry_attempts": 3,
+    "retry_delay_ms": 1000,
+    "measurement_spots": [
+      {
+        "id": 1,
+        "name": "Center Spot",
+        "x": 160,
+        "y": 120,
+        "min_temp": 20.0,
+        "max_temp": 80.0,
+        "noise_factor": 0.1,
+        "enabled": true
+      },
+      {
+        "id": 2,
+        "name": "Hot Zone",
+        "x": 50,
+        "y": 50,
+        "min_temp": 60.0,
+        "max_temp": 120.0,
+        "noise_factor": 0.15,
+        "enabled": true
+      },
+      {
+        "id": 3,
+        "name": "Cool Zone",
+        "x": 250,
+        "y": 180,
+        "min_temp": 15.0,
+        "max_temp": 40.0,
+        "noise_factor": 0.05,
+        "enabled": true
+      },
+      {
+        "id": 4,
+        "name": "Edge Monitor",
+        "x": 310,
+        "y": 230,
+        "min_temp": 25.0,
+        "max_temp": 70.0,
+        "noise_factor": 0.2,
+        "enabled": true
+      }
+    ]
+  },
+  "logging": {
+    "level": "info",
+    "output": "console",
+    "log_file": "thermal-mqtt.log"
+  }
+}

@@ -1,0 +1,50 @@
+# C++ Build Artifacts
+build/
+bin/
+obj/
+out/
+*.o
+*.so
+*.a
+*.exe
+*.dll
+
+# IDE and Editor Files
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+.vscode/
+.idea/
+*.iml
+
+# Logs and Runtime
+*.log
+.env*
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+install_manifest.txt
+CTestTestfile.cmake
+_deps
+
+# Google Test
+gtest/
+googletest/
+
+# Paho MQTT (if downloaded/built locally)
+paho-mqtt-cpp/
+eclipse-paho/
+
+# Configuration Files (keep examples, ignore local configs)
+config.json
+local_config*.json
+
+# Coverage Reports
+*.gcda
+*.gcno
+*.gcov
+coverage/

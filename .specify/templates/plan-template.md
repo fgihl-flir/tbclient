@@ -17,21 +17,27 @@
   the iteration process.
 -->
 
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: C++17 (required by constitution)
+**Primary Dependencies**: Eclipse Paho MQTT C++ (paho-mqtt-cpp), Google Test (gtest)
+**Storage**: JSON configuration files, in-memory message buffers
+**Testing**: Google Test for unit and integration testing (constitution requirement)
+**Target Platform**: Linux (primary), macOS (secondary), Windows (if time permits)
+**Project Type**: single C++ application with CLI interface
+**Performance Goals**: Handle 100+ messages/second, sub-second reconnection
+**Constraints**: No dynamic allocation during message processing, 80%+ test coverage required
+**Scale/Scope**: Proof of concept - single device simulation, basic telemetry
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- [ ] **C++17 Standards**: All code compiles with `-Wall -Wextra -Werror` without warnings
+- [ ] **MQTT Library**: Only Eclipse Paho MQTT C++ library used for MQTT operations
+- [ ] **Test Coverage**: 80%+ test coverage with Google Test framework
+- [ ] **Connection Resilience**: Automatic reconnection with exponential backoff implemented
+- [ ] **Simplicity**: No unnecessary abstractions, minimal dependencies beyond Paho and GTest
+- [ ] **Memory Management**: Smart pointers used, no raw pointer ownership
+- [ ] **Error Handling**: Clear separation between exceptions (programming errors) and error codes (recoverable failures)
 
 ## Project Structure
 
@@ -56,43 +62,31 @@ specs/[###-feature]/
 -->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
+# C++ Single Project Structure (ThingsBoard MQTT Client)
 src/
-├── models/
-├── services/
-├── cli/
-└── lib/
+├── mqtt/                # MQTT client wrapper and connection management
+├── thingsboard/         # ThingsBoard-specific protocol and message handling
+├── config/              # Configuration file parsing and management
+├── utils/               # Utility classes and helper functions
+└── main.cpp             # CLI entry point
 
 tests/
-├── contract/
-├── integration/
-└── unit/
+├── unit/                # Unit tests for individual classes
+├── integration/         # Integration tests with MQTT broker
+└── mocks/               # Mock objects for testing
 
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
+include/                 # Public header files
+├── mqtt/
+├── thingsboard/
+├── config/
+└── utils/
 
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+CMakeLists.txt           # Build configuration
+config.json              # Default configuration file
+README.md                # Build and usage instructions
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: C++ single project structure selected for proof of concept simplicity. Modular design with separate directories for MQTT handling, ThingsBoard protocol, configuration management, and utilities. CMake-based build system for cross-platform compilation. Clear separation between source code (`src/`), headers (`include/`), and tests (`tests/`) following C++ best practices.
 
 ## Complexity Tracking
 

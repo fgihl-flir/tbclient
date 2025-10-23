@@ -20,10 +20,12 @@ description: "Task list template for feature implementation"
 
 ## Path Conventions
 
-- **Single project**: `src/`, `tests/` at repository root
-- **Web app**: `backend/src/`, `frontend/src/`
-- **Mobile**: `api/src/`, `ios/src/` or `android/src/`
-- Paths shown below assume single project - adjust based on plan.md structure
+- **C++ project**: `src/`, `include/`, `tests/` at repository root
+- `src/` contains implementation files (.cpp)
+- `include/` contains public header files (.h/.hpp)
+- `tests/` contains unit and integration tests
+- CMakeLists.txt for build configuration
+- Paths shown below assume single C++ project structure
 
 <!-- 
   ============================================================================
@@ -46,28 +48,28 @@ description: "Task list template for feature implementation"
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-**Purpose**: Project initialization and basic structure
+**Purpose**: C++ project initialization and build system setup
 
-- [ ] T001 Create project structure per implementation plan
-- [ ] T002 Initialize [language] project with [framework] dependencies
-- [ ] T003 [P] Configure linting and formatting tools
+- [ ] T001 Create CMake project structure with src/, include/, tests/ directories
+- [ ] T002 Initialize CMakeLists.txt with C++17 standard and Eclipse Paho MQTT dependency
+- [ ] T003 [P] Configure compiler flags (-Wall -Wextra -Werror) and Google Test integration
 
 ---
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
-**Purpose**: Core infrastructure that MUST be complete before ANY user story can be implemented
+**Purpose**: Core C++ infrastructure that MUST be complete before ANY user story can be implemented
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-Examples of foundational tasks (adjust based on your project):
+Essential foundational tasks for C++ MQTT client:
 
-- [ ] T004 Setup database schema and migrations framework
-- [ ] T005 [P] Implement authentication/authorization framework
-- [ ] T006 [P] Setup API routing and middleware structure
-- [ ] T007 Create base models/entities that all stories depend on
-- [ ] T008 Configure error handling and logging infrastructure
-- [ ] T009 Setup environment configuration management
+- [ ] T004 Implement configuration management class for JSON config files in src/config/
+- [ ] T005 [P] Create MQTT connection wrapper with async client in src/mqtt/
+- [ ] T006 [P] Setup logging infrastructure with configurable levels
+- [ ] T007 Create base MQTT message classes and ThingsBoard protocol handlers
+- [ ] T008 Implement connection resilience with exponential backoff retry logic
+- [ ] T009 Setup error handling framework (exceptions vs error codes)
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -83,17 +85,17 @@ Examples of foundational tasks (adjust based on your project):
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T010 [P] [US1] Contract test for [endpoint] in tests/contract/test_[name].py
-- [ ] T011 [P] [US1] Integration test for [user journey] in tests/integration/test_[name].py
+- [ ] T010 [P] [US1] Unit test for MQTT connection class in tests/unit/test_mqtt_client.cpp
+- [ ] T011 [P] [US1] Integration test for broker connectivity in tests/integration/test_thingsboard_connection.cpp
 
 ### Implementation for User Story 1
 
-- [ ] T012 [P] [US1] Create [Entity1] model in src/models/[entity1].py
-- [ ] T013 [P] [US1] Create [Entity2] model in src/models/[entity2].py
-- [ ] T014 [US1] Implement [Service] in src/services/[service].py (depends on T012, T013)
-- [ ] T015 [US1] Implement [endpoint/feature] in src/[location]/[file].py
-- [ ] T016 [US1] Add validation and error handling
-- [ ] T017 [US1] Add logging for user story 1 operations
+- [ ] T012 [P] [US1] Create MQTTClient class header in include/mqtt/client.h
+- [ ] T013 [P] [US1] Create ThingsBoardDevice class header in include/thingsboard/device.h
+- [ ] T014 [US1] Implement MQTTClient class in src/mqtt/client.cpp (depends on T012, T013)
+- [ ] T015 [US1] Implement device telemetry publishing in src/thingsboard/device.cpp
+- [ ] T016 [US1] Add message validation and error handling with proper C++ exceptions
+- [ ] T017 [US1] Add structured logging for MQTT operations and connection events
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
