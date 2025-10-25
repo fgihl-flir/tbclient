@@ -1,0 +1,37 @@
+{
+  "thingsboard": {
+    "host": "your-thingsboard-server.com",
+    "port": 1883,
+    "access_token": "DEVICE_ACCESS_TOKEN_FROM_PROVISIONING",
+    "device_id": "thermal-camera-1234"
+  },
+  "telemetry": {
+    "interval_seconds": 15,
+    "measurement_spots": [
+      {
+        "id": 1,
+        "name": "Spot 1",
+        "x": 100,
+        "y": 100,
+        "min_temp": 20.0,
+        "max_temp": 100.0
+      },
+      {
+        "id": 2,
+        "name": "Spot 2", 
+        "x": 200,
+        "y": 150,
+        "min_temp": 15.0,
+        "max_temp": 80.0
+      }
+    ]
+  },
+  "camera": {
+    "model": "thermal-cam-v1",
+    "serial_number": "TC001",
+    "calibration": {
+      "offset": 0.0,
+      "scale": 1.0
+    }
+  }
+}

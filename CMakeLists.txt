@@ -55,6 +55,7 @@ if(USE_REAL_MQTT)
     )
     set(THINGSBOARD_SOURCES
         src/thingsboard/paho_device.cpp  # Real ThingsBoard device implementation
+        src/thingsboard/provisioning.cpp  # NEW: Device provisioning implementation
     )
 else()
     set(MQTT_SOURCES
@@ -62,16 +63,28 @@ else()
     )
     set(THINGSBOARD_SOURCES
         src/thingsboard/mock_device.cpp  # Mock implementation for testing
+        src/thingsboard/provisioning.cpp  # NEW: Device provisioning implementation
     )
 endif()
 
 set(CONFIG_SOURCES
     src/config/configuration.cpp
+    src/config/provisioning.cpp  # NEW: Provisioning configuration parser
 )
 
 set(COMMON_SOURCES
     src/common/logger.cpp
     src/common/error_handler.cpp
+)
+
+# Utils sources
+set(UTILS_SOURCES
+    src/utils/file_utils.cpp
+)
+
+# Provisioning sources
+set(PROVISIONING_SOURCES
+    src/provisioning/workflow.cpp
 )
 
 set(LIB_SOURCES
@@ -80,6 +93,8 @@ set(LIB_SOURCES
     ${THINGSBOARD_SOURCES}
     ${CONFIG_SOURCES}
     ${COMMON_SOURCES}
+    ${UTILS_SOURCES}
+    ${PROVISIONING_SOURCES}
 )
 
 # Create a library for core functionality
