@@ -43,6 +43,10 @@ eclipse-paho/
 config.json
 local_config*.json
 
+# Provisioning Files (keep examples, ignore actual credentials)
+provision.json
+thermal_config.json
+
 # Coverage Reports
 *.gcda
 *.gcno

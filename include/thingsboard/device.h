@@ -2,6 +2,8 @@
 
 #include "mqtt/paho_c_client.h"
 #include "config/configuration.h"
+#include "thermal/rpc/thermal_rpc_handler.h"
+#include "thingsboard/rpc/rpc_parser.h"
 #include <memory>
 #include <chrono>
 
@@ -17,6 +19,8 @@ class ThingsBoardDevice : public MQTTEventCallback {
 private:
     ThingsBoardConfig config_;
     std::unique_ptr<PahoCClient> mqtt_client_;
+    std::shared_ptr<thermal::ThermalRPCHandler> thermal_rpc_handler_;
+    std::unique_ptr<thermal::RPCParser> rpc_parser_;
     
 public:
     /**
@@ -78,6 +82,20 @@ public:
      */
     void set_auto_reconnect(bool enable);
     
+    /**
+     * @brief Send RPC response to ThingsBoard
+     * @param request_id Request ID from the RPC command
+     * @param response JSON response payload
+     * @return true if response was sent successfully
+     */
+    bool send_rpc_response(const std::string& request_id, const std::string& response);
+    
+    /**
+     * @brief Set thermal RPC handler for thermal spot operations
+     * @param handler Thermal RPC handler instance
+     */
+    void setThermalRPCHandler(std::shared_ptr<thermal::ThermalRPCHandler> handler);
+    
     // MQTTEventCallback interface
     void on_connection_lost(const std::string& cause) override;
     void on_message_delivered(const std::string& topic, int message_id) override;
@@ -85,10 +103,18 @@ public:
     void on_connection_failure(const std::string& error) override;
     void on_disconnected() override;
     
+    /**
+     * @brief Handle received MQTT messages (including RPC commands)
+     * @param topic Topic the message was received on
+     * @param payload Message payload
+     */
+    void on_message_received(const std::string& topic, const std::string& payload) override;
+    
 private:
     std::string build_server_uri() const;
     std::string build_client_id() const;
     std::string build_telemetry_topic() const;
+    std::string build_rpc_response_topic(const std::string& request_id) const;
     std::string build_telemetry_payload(int spot_id, double temperature) const;
     std::string build_telemetry_payload_with_timestamp(
         int spot_id, double temperature,
@@ -96,6 +122,20 @@ private:
     bool validate_temperature(double temperature) const;
     std::string format_timestamp(
         std::chrono::time_point<std::chrono::system_clock> timestamp) const;
+        
+    /**
+     * @brief Handle RPC command received via MQTT
+     * @param topic RPC topic that contained the command
+     * @param payload RPC command JSON payload
+     */
+    void handle_rpc_command(const std::string& topic, const std::string& payload);
+    
+    /**
+     * @brief Extract request ID from RPC topic
+     * @param rpc_topic Full RPC topic path
+     * @return Request ID or empty string if invalid
+     */
+    std::string extract_request_id(const std::string& rpc_topic) const;
 };
 
 } // namespace thermal

@@ -3,6 +3,7 @@
 #include "thermal/measurement_spot.h"
 #include "thingsboard/device.h"
 #include "common/logger.h"
+#include "provisioning/workflow.h"
 #include <iostream>
 #include <iomanip>
 #include <thread>
@@ -212,6 +213,27 @@ int main() {
     thermal::Logger::instance();
     
     LOG_INFO("Starting thermal camera MQTT client (User Story 2 - Continuous Telemetry)...");
+    
+    // Check if provisioning is needed
+    provisioning::ProvisioningWorkflow provisioning_workflow;
+    if (provisioning_workflow.shouldProvision()) {
+        LOG_INFO("Provisioning mode detected - provision.txt file found");
+        LOG_INFO("Starting device provisioning workflow...");
+        
+        auto provision_result = provisioning_workflow.executeProvisioning();
+        
+        if (provision_result.success) {
+            LOG_INFO("Device provisioning completed successfully!");
+            LOG_INFO("Generated device: " << provision_result.device_name);
+            LOG_INFO("Continuing with normal operation...");
+        } else {
+            LOG_ERROR("Device provisioning failed: " << provision_result.error_message);
+            LOG_ERROR("Cannot continue without valid device configuration");
+            return 1;
+        }
+    } else {
+        LOG_INFO("No provisioning needed, using existing configuration");
+    }
     
     ContinuousTelemetryApp app;
     

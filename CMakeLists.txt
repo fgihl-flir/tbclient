@@ -46,6 +46,15 @@ endif()
 set(THERMAL_SOURCES
     src/thermal/temperature_reading.cpp
     src/thermal/measurement_spot.cpp
+    # Thermal manager sources
+    src/thermal/spot_manager/thermal_spot_manager.cpp
+    src/thermal/spot_manager/spot_persistence.cpp
+    # Temperature source sources
+    src/thermal/temperature_source/temperature_data_source.cpp
+    src/thermal/temperature_source/coordinate_based_source.cpp
+    src/thermal/temperature_source/temperature_source_factory.cpp
+    # Thermal RPC sources
+    src/thermal/rpc/thermal_rpc_handler.cpp
 )
 
 # Choose MQTT implementation based on availability
@@ -55,6 +64,12 @@ if(USE_REAL_MQTT)
     )
     set(THINGSBOARD_SOURCES
         src/thingsboard/paho_device.cpp  # Real ThingsBoard device implementation
+        src/thingsboard/provisioning.cpp  # Device provisioning implementation
+        # ThingsBoard RPC Module Sources
+        src/thingsboard/rpc/rpc_types.cpp
+        src/thingsboard/rpc/rpc_parser.cpp
+        src/thingsboard/rpc/rpc_timeout_manager.cpp
+        src/thingsboard/rpc/rpc_command_queue.cpp
     )
 else()
     set(MQTT_SOURCES
@@ -62,16 +77,33 @@ else()
     )
     set(THINGSBOARD_SOURCES
         src/thingsboard/mock_device.cpp  # Mock implementation for testing
+        src/thingsboard/provisioning.cpp  # Device provisioning implementation
+        # ThingsBoard RPC Module Sources
+        src/thingsboard/rpc/rpc_types.cpp
+        src/thingsboard/rpc/rpc_parser.cpp
+        src/thingsboard/rpc/rpc_timeout_manager.cpp
+        src/thingsboard/rpc/rpc_command_queue.cpp
     )
 endif()
 
 set(CONFIG_SOURCES
     src/config/configuration.cpp
+    src/config/provisioning.cpp  # NEW: Provisioning configuration parser
 )
 
 set(COMMON_SOURCES
     src/common/logger.cpp
     src/common/error_handler.cpp
+)
+
+# Utils sources
+set(UTILS_SOURCES
+    src/utils/file_utils.cpp
+)
+
+# Provisioning sources
+set(PROVISIONING_SOURCES
+    src/provisioning/workflow.cpp
 )
 
 set(LIB_SOURCES
@@ -80,6 +112,8 @@ set(LIB_SOURCES
     ${THINGSBOARD_SOURCES}
     ${CONFIG_SOURCES}
     ${COMMON_SOURCES}
+    ${UTILS_SOURCES}
+    ${PROVISIONING_SOURCES}
 )
 
 # Create a library for core functionality
@@ -139,8 +173,6 @@ target_link_libraries(thermal-paho-client
     PRIVATE
     thermal-core
     nlohmann_json::nlohmann_json
-    paho-mqttpp3-static
-    paho-mqtt3as-static
 )
 
 # Keep the config test executable
@@ -172,6 +204,10 @@ if(BUILD_TESTS)
         tests/unit/test_temperature_reading.cpp
         tests/unit/test_measurement_spot.cpp
         tests/integration/test_multi_spot.cpp
+        # Thermal manager tests
+        tests/thermal/manager/test_thermal_spot_manager.cpp
+        # Thermal RPC integration tests
+        tests/thermal/rpc/test_create_spot_measurement_integration.cpp
     )
     
     add_executable(thermal-tests ${TEST_SOURCES})

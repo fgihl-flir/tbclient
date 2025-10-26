@@ -1,0 +1,14 @@
+{
+  "provisioning": {
+    "device_key": "YOUR_PROVISION_DEVICE_KEY",
+    "device_secret": "YOUR_PROVISION_DEVICE_SECRET",
+    "host": "your-thingsboard-server.com",
+    "port": 1883,
+    "timeout_seconds": 30,
+    "max_retries": 3
+  },
+  "device": {
+    "type": "thermal-camera",
+    "profile": "thermal_sensor_profile"
+  }
+}
