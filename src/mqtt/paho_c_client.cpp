@@ -133,7 +133,7 @@ bool PahoCClient::publish(const std::string& topic,
     MQTTAsync_responseOptions opts = MQTTAsync_responseOptions_initializer;
     opts.context = this;
     
-    LOG_DEBUG("Publishing to topic '" << topic << "': " << payload);
+    LOG_DEBUG("Publishing to topic '" << topic << "'");
     
     int rc = MQTTAsync_sendMessage(client_, topic.c_str(), &message, &opts);
     
@@ -155,6 +155,8 @@ bool PahoCClient::subscribe(const std::string& topic, int qos) {
     
     MQTTAsync_responseOptions opts = MQTTAsync_responseOptions_initializer;
     opts.context = this;
+    opts.onSuccess = on_subscribe_success_wrapper;
+    opts.onFailure = on_subscribe_failure_wrapper;
     
     LOG_DEBUG("Subscribing to topic '" << topic << "' with QoS " << qos);
     
@@ -273,6 +275,25 @@ void PahoCClient::on_disconnect_wrapper(void* context, MQTTAsync_successData* re
             client->event_callback_->on_disconnected();
         }
     }
+}
+
+void PahoCClient::on_subscribe_success_wrapper(void* context, MQTTAsync_successData* response) {
+    (void)response; // Unused parameter
+    if (context) {
+        LOG_DEBUG("Successfully subscribed to RPC topic");
+    }
+}
+
+void PahoCClient::on_subscribe_failure_wrapper(void* context, MQTTAsync_failureData* response) {
+    (void)context; // Unused parameter
+    std::string error = "Subscription failed";
+    if (response && response->message) {
+        error += ": " + std::string(response->message);
+    }
+    if (response) {
+        error += " (code: " + std::to_string(response->code) + ")";
+    }
+    LOG_ERROR("Failed to subscribe to RPC topic: " << error);
 }
 
 // Private methods

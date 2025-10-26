@@ -28,9 +28,9 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(nlohmann_json)
 
 # Find system-installed Paho MQTT C library
-find_library(PAHO_MQTT3A_LIB paho-mqtt3a PATHS /opt/homebrew/lib)
-find_library(PAHO_MQTT3AS_LIB paho-mqtt3as PATHS /opt/homebrew/lib)
-find_path(PAHO_MQTT_INCLUDE_DIR MQTTAsync.h PATHS /opt/homebrew/include)
+find_library(PAHO_MQTT3A_LIB paho-mqtt3a PATHS /usr/lib/x86_64-linux-gnu /opt/homebrew/lib /usr/lib /usr/local/lib)
+find_library(PAHO_MQTT3AS_LIB paho-mqtt3as PATHS /usr/lib/x86_64-linux-gnu /opt/homebrew/lib /usr/lib /usr/local/lib)
+find_path(PAHO_MQTT_INCLUDE_DIR MQTTAsync.h PATHS /usr/include /opt/homebrew/include /usr/local/include)
 
 if(NOT PAHO_MQTT3A_LIB OR NOT PAHO_MQTT3AS_LIB OR NOT PAHO_MQTT_INCLUDE_DIR)
     message(WARNING "Paho MQTT C library not found, using mock implementation")

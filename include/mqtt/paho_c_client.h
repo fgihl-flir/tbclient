@@ -162,6 +162,8 @@ public:
     static void on_connect_success_wrapper(void* context, MQTTAsync_successData* response);
     static void on_connect_failure_wrapper(void* context, MQTTAsync_failureData* response);
     static void on_disconnect_wrapper(void* context, MQTTAsync_successData* response);
+    static void on_subscribe_success_wrapper(void* context, MQTTAsync_successData* response);
+    static void on_subscribe_failure_wrapper(void* context, MQTTAsync_failureData* response);
     static int on_message_arrived_wrapper(void* context, char* topic_name, int topic_len, MQTTAsync_message* message);
     
 private:

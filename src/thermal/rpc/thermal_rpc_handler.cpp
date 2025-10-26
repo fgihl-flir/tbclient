@@ -32,12 +32,13 @@ bool ThermalRPCHandler::isSupported(const std::string& method) const {
 
 void ThermalRPCHandler::handleRPCCommand(const std::string& request_id, const RPCCommand& command) {
     if (!response_callback_) {
-        // Cannot send response without callback - log error
+        LOG_ERROR("Cannot send response without callback - response_callback_ is null");
         return;
     }
     
     // Convert method enum to string for comparison
     std::string method_str = RPCCommand::methodToString(command.method);
+    LOG_INFO("Processing RPC method: " << method_str);
     
     // Route to appropriate handler based on method
     if (method_str == "createSpotMeasurement") {
@@ -196,12 +197,12 @@ void ThermalRPCHandler::handleDeleteSpotMeasurement(const std::string& request_i
 }
 
 void ThermalRPCHandler::handleListSpotMeasurements(const std::string& request_id, const RPCCommand& /* command */) {
-    LOG_INFO("=== Processing listSpotMeasurements RPC command ===");
+    LOG_DEBUG("Processing listSpotMeasurements RPC command");
     
     // Get all spots from manager
     auto spots = spot_manager_->listSpots();
     
-    LOG_INFO("Found " << spots.size() << " active thermal measurement spots:");
+    LOG_INFO("Found " << spots.size() << " active thermal measurement spots");
     
     // Build response with spot list and log each spot
     nlohmann::json spots_array = nlohmann::json::array();
@@ -216,9 +217,9 @@ void ThermalRPCHandler::handleListSpotMeasurements(const std::string& request_id
         float temp = spot_manager_->getSpotTemperature(std::to_string(spot.id));
         if (!std::isnan(temp)) {
             spot_json["temperature"] = temp;
-            LOG_INFO("  Spot " << spot.id << ": Position(" << spot.x << ", " << spot.y << ") Temperature: " << std::fixed << std::setprecision(2) << temp << "°C");
+            LOG_DEBUG("  Spot " << spot.id << ": Position(" << spot.x << ", " << spot.y << ") Temperature: " << std::fixed << std::setprecision(2) << temp << "°C");
         } else {
-            LOG_INFO("  Spot " << spot.id << ": Position(" << spot.x << ", " << spot.y << ") Temperature: N/A");
+            LOG_DEBUG("  Spot " << spot.id << ": Position(" << spot.x << ", " << spot.y << ") Temperature: N/A");
         }
         
         // Include RPC metadata if available
@@ -233,7 +234,7 @@ void ThermalRPCHandler::handleListSpotMeasurements(const std::string& request_id
     }
     
     if (spots.empty()) {
-        LOG_INFO("  No active spots found");
+        LOG_DEBUG("  No active spots found");
     }
     
     nlohmann::json response_data = {
@@ -241,7 +242,7 @@ void ThermalRPCHandler::handleListSpotMeasurements(const std::string& request_id
         {"count", spots.size()}
     };
     
-    LOG_INFO("Sending listSpotMeasurements response with " << spots.size() << " spots");
+    LOG_DEBUG("Sending listSpotMeasurements response with " << spots.size() << " spots");
     sendSuccessResponse(request_id, response_data);
 }
 
@@ -290,7 +291,13 @@ void ThermalRPCHandler::sendErrorResponse(const std::string& request_id, const s
         }}
     };
     
-    response_callback_(request_id, response);
+    LOG_DEBUG("Sending error response for request " << request_id << ": " << error_message);
+    
+    if (response_callback_) {
+        response_callback_(request_id, response);
+    } else {
+        LOG_ERROR("Response callback is not set! Cannot send RPC error response");
+    }
 }
 
 void ThermalRPCHandler::sendSuccessResponse(const std::string& request_id, const nlohmann::json& data) {
@@ -298,7 +305,13 @@ void ThermalRPCHandler::sendSuccessResponse(const std::string& request_id, const
         {"result", data}
     };
     
-    response_callback_(request_id, response);
+    LOG_DEBUG("Sending success response for request " << request_id);
+    
+    if (response_callback_) {
+        response_callback_(request_id, response);
+    } else {
+        LOG_ERROR("Response callback is not set! Cannot send RPC response");
+    }
 }
 
 bool ThermalRPCHandler::validateCreateSpotParams(const RPCCommand& command) {

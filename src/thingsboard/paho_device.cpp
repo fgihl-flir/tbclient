@@ -6,6 +6,8 @@
 #include <nlohmann/json.hpp>
 #include <iomanip>
 #include <sstream>
+#include <thread>
+#include <chrono>
 
 namespace thermal {
 
@@ -135,8 +137,7 @@ bool ThingsBoardDevice::send_rpc_response(const std::string& request_id, const s
     }
     
     std::string topic = build_rpc_response_topic(request_id);
-    
-    LOG_DEBUG("Sending RPC response to " << topic << ": " << response);
+    LOG_DEBUG("Sending RPC response to " << topic);
     
     bool result = mqtt_client_->publish(topic, response, 1, false);
     if (result) {
@@ -177,12 +178,19 @@ void ThingsBoardDevice::on_connection_success() {
     
     // Now that we're connected, subscribe to RPC commands
     LOG_INFO("Subscribing to ThingsBoard RPC topic: v1/devices/me/rpc/request/+");
-    bool subscription_result = mqtt_client_->subscribe("v1/devices/me/rpc/request/+", 1);
-    if (subscription_result) {
-        LOG_INFO("Successfully subscribed to RPC commands");
-    } else {
-        LOG_ERROR("Failed to subscribe to RPC commands");
-    }
+    
+    // Try subscription in a separate thread to avoid blocking
+    std::thread subscription_thread([this]() {
+        bool subscription_result = mqtt_client_->subscribe("v1/devices/me/rpc/request/+", 1);
+        if (subscription_result) {
+            LOG_DEBUG("Successfully queued RPC subscription request");
+        } else {
+            LOG_ERROR("Failed to queue RPC subscription request");
+        }
+    });
+    
+    // Detach the thread so it can run independently
+    subscription_thread.detach();
 }
 
 void ThingsBoardDevice::on_connection_failure(const std::string& error) {
@@ -194,8 +202,7 @@ void ThingsBoardDevice::on_disconnected() {
 }
 
 void ThingsBoardDevice::on_message_received(const std::string& topic, const std::string& payload) {
-    LOG_INFO("Received MQTT message on topic: " << topic);
-    LOG_DEBUG("Message payload: " << payload);
+    LOG_DEBUG("Received MQTT message on topic: " << topic);
     
     // Check if this is an RPC command
     if (topic.find("v1/devices/me/rpc/request/") == 0) {
@@ -350,7 +357,20 @@ void ThingsBoardDevice::setThermalRPCHandler(std::shared_ptr<thermal::ThermalRPC
         // Set up response callback to route responses back through MQTT
         thermal_rpc_handler_->setResponseCallback(
             [this](const std::string& request_id, const nlohmann::json& response) {
-                this->send_rpc_response(request_id, response.dump());
+                // Use a separate thread to avoid blocking issues (same as subscription fix)
+                std::thread response_thread([this, request_id, response]() {
+                    try {
+                        std::string response_str = response.dump();
+                        this->send_rpc_response(request_id, response_str);
+                    } catch (const std::exception& e) {
+                        LOG_ERROR("Exception in RPC response thread: " << e.what());
+                    } catch (...) {
+                        LOG_ERROR("Unknown exception in RPC response thread");
+                    }
+                });
+                
+                // Detach the thread so it can run independently
+                response_thread.detach();
             }
         );
         
