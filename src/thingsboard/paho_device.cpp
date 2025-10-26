@@ -1,6 +1,8 @@
 #include "thingsboard/device.h"
 #include "mqtt/paho_c_client.h"
 #include "common/logger.h"
+#include "thermal/rpc/thermal_rpc_handler.h"
+#include "thingsboard/rpc/rpc_parser.h"
 #include <nlohmann/json.hpp>
 #include <iomanip>
 #include <sstream>
@@ -20,6 +22,9 @@ ThingsBoardDevice::ThingsBoardDevice(const ThingsBoardConfig& config)
     std::string client_id = build_client_id();
     
     mqtt_client_ = std::make_unique<PahoCClient>(server_uri, client_id, this);
+    
+    // Initialize RPC parser
+    rpc_parser_ = std::make_unique<thermal::RPCParser>();
     
     LOG_INFO("ThingsBoard device initialized: " << config_.device_id << " -> " << server_uri);
 }
@@ -44,8 +49,13 @@ bool ThingsBoardDevice::connect() {
     LOG_INFO("Connecting to ThingsBoard: " << config_.host << ":" << config_.port);
     
     // ThingsBoard uses access token as username, no password
-    return mqtt_client_->connect(config_.access_token, "", 
-                                config_.keep_alive_seconds, true);
+    bool result = mqtt_client_->connect(config_.access_token, "", 
+                                       config_.keep_alive_seconds, true);
+    
+    // Note: RPC subscription will happen in on_connection_success() callback
+    // when the async connection is actually established
+    
+    return result;
 }
 
 bool ThingsBoardDevice::disconnect() {
@@ -118,6 +128,26 @@ bool ThingsBoardDevice::send_telemetry(int spot_id, double temperature,
     return result;
 }
 
+bool ThingsBoardDevice::send_rpc_response(const std::string& request_id, const std::string& response) {
+    if (!is_connected()) {
+        LOG_ERROR("Not connected to ThingsBoard for RPC response");
+        return false;
+    }
+    
+    std::string topic = build_rpc_response_topic(request_id);
+    
+    LOG_DEBUG("Sending RPC response to " << topic << ": " << response);
+    
+    bool result = mqtt_client_->publish(topic, response, 1, false);
+    if (result) {
+        LOG_DEBUG("RPC response sent successfully for request " << request_id);
+    } else {
+        LOG_ERROR("Failed to send RPC response for request " << request_id);
+    }
+    
+    return result;
+}
+
 const MQTTClientStats& ThingsBoardDevice::get_connection_stats() const {
     if (!mqtt_client_) {
         static MQTTClientStats empty_stats;
@@ -144,6 +174,15 @@ void ThingsBoardDevice::on_message_delivered(const std::string& topic, int messa
 
 void ThingsBoardDevice::on_connection_success() {
     LOG_INFO("Successfully connected to ThingsBoard");
+    
+    // Now that we're connected, subscribe to RPC commands
+    LOG_INFO("Subscribing to ThingsBoard RPC topic: v1/devices/me/rpc/request/+");
+    bool subscription_result = mqtt_client_->subscribe("v1/devices/me/rpc/request/+", 1);
+    if (subscription_result) {
+        LOG_INFO("Successfully subscribed to RPC commands");
+    } else {
+        LOG_ERROR("Failed to subscribe to RPC commands");
+    }
 }
 
 void ThingsBoardDevice::on_connection_failure(const std::string& error) {
@@ -152,6 +191,19 @@ void ThingsBoardDevice::on_connection_failure(const std::string& error) {
 
 void ThingsBoardDevice::on_disconnected() {
     LOG_INFO("Disconnected from ThingsBoard");
+}
+
+void ThingsBoardDevice::on_message_received(const std::string& topic, const std::string& payload) {
+    LOG_INFO("Received MQTT message on topic: " << topic);
+    LOG_DEBUG("Message payload: " << payload);
+    
+    // Check if this is an RPC command
+    if (topic.find("v1/devices/me/rpc/request/") == 0) {
+        LOG_INFO("Processing RPC command from topic: " << topic);
+        handle_rpc_command(topic, payload);
+    } else {
+        LOG_DEBUG("Ignoring non-RPC message on topic: " << topic);
+    }
 }
 
 // Private helper methods
@@ -166,6 +218,10 @@ std::string ThingsBoardDevice::build_client_id() const {
 
 std::string ThingsBoardDevice::build_telemetry_topic() const {
     return "v1/devices/me/telemetry";
+}
+
+std::string ThingsBoardDevice::build_rpc_response_topic(const std::string& request_id) const {
+    return "v1/devices/me/rpc/response/" + request_id;
 }
 
 std::string ThingsBoardDevice::build_telemetry_payload(int spot_id, double temperature) const {
@@ -204,6 +260,104 @@ std::string ThingsBoardDevice::format_timestamp(
     std::stringstream ss;
     ss << std::put_time(std::gmtime(&time_t), "%Y-%m-%d %H:%M:%S UTC");
     return ss.str();
+}
+
+void ThingsBoardDevice::handle_rpc_command(const std::string& topic, const std::string& payload) {
+    try {
+        std::string request_id = extract_request_id(topic);
+        if (request_id.empty()) {
+            LOG_ERROR("Invalid RPC topic format: " << topic);
+            return;
+        }
+        
+        LOG_INFO("Processing RPC command with request ID: " << request_id);
+        LOG_INFO("RPC command payload: " << payload);
+        
+        // Parse the RPC command
+        auto rpc_command = rpc_parser_->parseCommand(request_id, payload);
+        
+        // Check if parsing was successful by validating the command
+        std::string validation_error = thermal::RPCParser::validateCommand(rpc_command);
+        if (!validation_error.empty()) {
+            LOG_ERROR("Failed to parse RPC command: " << validation_error);
+            
+            // Send error response for invalid command format
+            nlohmann::json error_response = {
+                {"error", {
+                    {"code", thermal::RPCErrorCodes::INVALID_JSON},
+                    {"message", validation_error}
+                }}
+            };
+            send_rpc_response(request_id, error_response.dump());
+            return;
+        }
+        
+        // Check if we have a thermal RPC handler and if it supports this method
+        std::string method_str = thermal::RPCCommand::methodToString(rpc_command.method);
+        LOG_INFO("Parsed RPC method: " << method_str);
+        if (thermal_rpc_handler_ && thermal_rpc_handler_->isSupported(method_str)) {
+            LOG_DEBUG("Routing RPC command to thermal handler: " << method_str);
+            thermal_rpc_handler_->handleRPCCommand(request_id, rpc_command);
+        } else {
+            LOG_WARN("Unsupported RPC method: " << method_str);
+            
+            // Send method not found error
+            nlohmann::json error_response = {
+                {"error", {
+                    {"code", thermal::RPCErrorCodes::UNKNOWN_METHOD},
+                    {"message", "Unsupported RPC method: " + method_str}
+                }}
+            };
+            send_rpc_response(request_id, error_response.dump());
+        }
+        
+    } catch (const std::exception& e) {
+        LOG_ERROR("Exception handling RPC command: " << e.what());
+        
+        // Send internal error response
+        nlohmann::json error_response = {
+            {"error", {
+                {"code", thermal::RPCErrorCodes::INTERNAL_ERROR},
+                {"message", "Internal error processing RPC command"}
+            }}
+        };
+        
+        try {
+            std::string request_id = extract_request_id(topic);
+            if (!request_id.empty()) {
+                send_rpc_response(request_id, error_response.dump());
+            }
+        } catch (...) {
+            LOG_ERROR("Failed to send error response");
+        }
+    }
+}
+
+std::string ThingsBoardDevice::extract_request_id(const std::string& rpc_topic) const {
+    // Topic format: v1/devices/me/rpc/request/{request_id}
+    const std::string prefix = "v1/devices/me/rpc/request/";
+    if (rpc_topic.find(prefix) != 0) {
+        return "";
+    }
+    
+    return rpc_topic.substr(prefix.length());
+}
+
+void ThingsBoardDevice::setThermalRPCHandler(std::shared_ptr<thermal::ThermalRPCHandler> handler) {
+    thermal_rpc_handler_ = handler;
+    
+    if (thermal_rpc_handler_) {
+        // Set up response callback to route responses back through MQTT
+        thermal_rpc_handler_->setResponseCallback(
+            [this](const std::string& request_id, const nlohmann::json& response) {
+                this->send_rpc_response(request_id, response.dump());
+            }
+        );
+        
+        LOG_INFO("Thermal RPC handler configured and response callback set");
+    } else {
+        LOG_INFO("Thermal RPC handler disabled");
+    }
 }
 
 // Factory function to create the appropriate device implementation

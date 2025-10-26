@@ -22,7 +22,7 @@ PahoCClient::PahoCClient(const std::string& server_uri,
     
     // Set callbacks
     MQTTAsync_setCallbacks(client_, this, on_connection_lost_wrapper, 
-                          nullptr, on_message_delivered_wrapper);
+                          on_message_arrived_wrapper, on_message_delivered_wrapper);
     
     update_state(MQTTConnectionState::DISCONNECTED);
     
@@ -147,6 +147,48 @@ bool PahoCClient::publish(const std::string& topic,
     return true;
 }
 
+bool PahoCClient::subscribe(const std::string& topic, int qos) {
+    if (!is_connected()) {
+        LOG_ERROR("Cannot subscribe: not connected to MQTT broker");
+        return false;
+    }
+    
+    MQTTAsync_responseOptions opts = MQTTAsync_responseOptions_initializer;
+    opts.context = this;
+    
+    LOG_DEBUG("Subscribing to topic '" << topic << "' with QoS " << qos);
+    
+    int rc = MQTTAsync_subscribe(client_, topic.c_str(), qos, &opts);
+    
+    if (rc != MQTTASYNC_SUCCESS) {
+        LOG_ERROR("Failed to subscribe to topic '" << topic << "': " << rc);
+        return false;
+    }
+    
+    return true;
+}
+
+bool PahoCClient::unsubscribe(const std::string& topic) {
+    if (!is_connected()) {
+        LOG_ERROR("Cannot unsubscribe: not connected to MQTT broker");
+        return false;
+    }
+    
+    MQTTAsync_responseOptions opts = MQTTAsync_responseOptions_initializer;
+    opts.context = this;
+    
+    LOG_DEBUG("Unsubscribing from topic '" << topic << "'");
+    
+    int rc = MQTTAsync_unsubscribe(client_, topic.c_str(), &opts);
+    
+    if (rc != MQTTASYNC_SUCCESS) {
+        LOG_ERROR("Failed to unsubscribe from topic '" << topic << "': " << rc);
+        return false;
+    }
+    
+    return true;
+}
+
 const MQTTClientStats& PahoCClient::get_stats() const {
     return stats_;
 }
@@ -168,6 +210,34 @@ void PahoCClient::on_connection_lost_wrapper(void* context, char* cause) {
     if (client->event_callback_) {
         client->event_callback_->on_connection_lost(cause_str);
     }
+}
+
+int PahoCClient::on_message_arrived_wrapper(void* context, char* topicName, int topicLen, MQTTAsync_message* message) {
+    auto* client = static_cast<PahoCClient*>(context);
+    if (!client || !topicName || !message) {
+        LOG_ERROR("Invalid parameters in message arrived callback");
+        return 1; // Return 1 to indicate message was processed (even if error)
+    }
+    
+    std::string topic = topicLen > 0 ? std::string(topicName, topicLen) : std::string(topicName);
+    std::string payload;
+    
+    if (message->payload && message->payloadlen > 0) {
+        payload = std::string(static_cast<char*>(message->payload), message->payloadlen);
+    }
+    
+    LOG_DEBUG("Message arrived on topic: " << topic << ", payload size: " << payload.size());
+    
+    // Call the message handler if available
+    if (client->event_callback_) {
+        client->event_callback_->on_message_received(topic, payload);
+    }
+    
+    // Free the message
+    MQTTAsync_freeMessage(&message);
+    MQTTAsync_free(topicName);
+    
+    return 1; // Return 1 to indicate message was processed successfully
 }
 
 void PahoCClient::on_message_delivered_wrapper(void* context, MQTTAsync_token token) {

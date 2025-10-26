@@ -30,6 +30,10 @@ struct MeasurementSpot {
     double noise_factor = 0.1;  // Temperature variation noise factor (0.0-1.0)
     bool enabled = true;        // Whether this spot is actively monitored
     
+    // RPC-specific metadata (optional)
+    std::string created_at;     // ISO 8601 timestamp when spot was created via RPC
+    std::string last_reading_at; // ISO 8601 timestamp of last temperature reading
+    
     // Runtime state
     SpotState state = SpotState::INACTIVE;
     

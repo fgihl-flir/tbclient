@@ -138,10 +138,7 @@ bool TelemetryConfig::validate() const {
         throw std::invalid_argument("Telemetry interval must be between 1 and 3600 seconds");
     }
     
-    if (measurement_spots.empty()) {
-        throw std::invalid_argument("Must have at least one measurement spot");
-    }
-    
+    // Allow empty measurement_spots array - spots can be created dynamically via RPC
     if (measurement_spots.size() > 5) {
         throw std::invalid_argument("Maximum 5 measurement spots allowed");
     }

@@ -65,6 +65,12 @@ void MeasurementSpot::from_json(const nlohmann::json& json_data) {
     if (json_data.contains("enabled")) {
         enabled = json_data["enabled"].get<bool>();
     }
+    if (json_data.contains("created_at")) {
+        created_at = json_data["created_at"].get<std::string>();
+    }
+    if (json_data.contains("last_reading_at")) {
+        last_reading_at = json_data["last_reading_at"].get<std::string>();
+    }
     
     // Set initial state based on enabled flag
     set_state(enabled ? SpotState::ACTIVE : SpotState::INACTIVE);
@@ -79,7 +85,9 @@ nlohmann::json MeasurementSpot::to_json() const {
         {"min_temp", min_temp},
         {"max_temp", max_temp},
         {"noise_factor", noise_factor},
-        {"enabled", enabled}
+        {"enabled", enabled},
+        {"created_at", created_at},
+        {"last_reading_at", last_reading_at}
     };
 }
 

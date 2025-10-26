@@ -109,18 +109,7 @@ ProvisioningWorkflowResult ProvisioningWorkflow::executeProvisioning() {
                 {"batch_transmission", false},
                 {"retry_attempts", 3},
                 {"retry_delay_ms", 1000},
-                {"measurement_spots", nlohmann::json::array({
-                    {
-                        {"id", 1},
-                        {"name", "Center Spot"},
-                        {"x", 160},
-                        {"y", 120},
-                        {"min_temp", 20.0},
-                        {"max_temp", 80.0},
-                        {"noise_factor", 0.1},
-                        {"enabled", true}
-                    }
-                })}
+                {"measurement_spots", nlohmann::json::array()}
             }},
             {"logging", {
                 {"level", "info"},

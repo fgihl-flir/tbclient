@@ -51,6 +51,13 @@ public:
     virtual void on_connection_success() = 0;
     virtual void on_connection_failure(const std::string& error) = 0;
     virtual void on_disconnected() = 0;
+    
+    /**
+     * @brief Called when a message is received
+     * @param topic Topic the message was received on
+     * @param payload Message payload
+     */
+    virtual void on_message_received(const std::string& topic, const std::string& payload) = 0;
 };
 
 /**
@@ -123,6 +130,21 @@ public:
                 bool retained = false);
     
     /**
+     * @brief Subscribe to topic
+     * @param topic MQTT topic (can include wildcards)
+     * @param qos Quality of Service level (0, 1, or 2)
+     * @return true if subscription was initiated successfully
+     */
+    bool subscribe(const std::string& topic, int qos = 1);
+    
+    /**
+     * @brief Unsubscribe from topic
+     * @param topic MQTT topic
+     * @return true if unsubscription was initiated successfully
+     */
+    bool unsubscribe(const std::string& topic);
+    
+    /**
      * @brief Get current client statistics
      * @return Current statistics
      */
@@ -140,6 +162,7 @@ public:
     static void on_connect_success_wrapper(void* context, MQTTAsync_successData* response);
     static void on_connect_failure_wrapper(void* context, MQTTAsync_failureData* response);
     static void on_disconnect_wrapper(void* context, MQTTAsync_successData* response);
+    static int on_message_arrived_wrapper(void* context, char* topic_name, int topic_len, MQTTAsync_message* message);
     
 private:
     void update_state(MQTTConnectionState new_state);
